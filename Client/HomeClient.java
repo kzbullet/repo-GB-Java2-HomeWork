@@ -7,16 +7,14 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class HomeClient {
-    private final String SERVER_ADDRESS = "localhost";
-    private final int SERVER_PORT = 8189;
 
+    private final String SERVER_ADDRESS = "localhost";
+    private final int SERVER_PORT = 8199;
     private Socket socket;
     private DataInputStream in;
     private DataOutputStream out;
 
-    private String chat;
-
-    Scanner scanner = new Scanner(System.in);
+    private Scanner scn = new Scanner(System.in);
 
     public HomeClient() {
         try {
@@ -30,35 +28,57 @@ public class HomeClient {
         socket = new Socket(SERVER_ADDRESS, SERVER_PORT);
         in = new DataInputStream(socket.getInputStream());
         out = new DataOutputStream(socket.getOutputStream());
-        new Thread(new Runnable() {
-            @Override
-            public void run() {
+
+        new Thread(() -> {
+            while (true) {
                 try {
-                    while (true) {
-                        String messageFromServer = in.readUTF();
-                        if (messageFromServer.equalsIgnoreCase("/end")) {
-                            break;
-                        }
-                        chat = messageFromServer;
-                    }
+                    String messageFromServer = in.readUTF();
+                    System.out.println("message from Server: " + messageFromServer);
                 } catch (IOException e) {
                     e.printStackTrace();
                 }
             }
-        });
+        }).start();
+    }
+
+    public void closeConnection() {
+        System.out.println("connection closed");
+        try {
+            in.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            out.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        try {
+            socket.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     public void sendMessage() {
-        String message = scanner.nextLine();
-        try {
-            out.writeUTF(message);
-        } catch (IOException e) {
-            e.printStackTrace();
-            System.out.println("Message sending error!");
+        System.out.println("to stop conversation type \"stop\"");
+        System.out.println("please type your message to server:");
+
+        while (true) {
+            String message = scn.nextLine();
+            if (message.equalsIgnoreCase("/stop")) {
+                closeConnection();
+            }
+            try {
+                out.writeUTF(message);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     public static void main(String[] args) {
-        new HomeClient();
+        HomeClient homeClient = new HomeClient();
+        homeClient.sendMessage();
     }
 }
